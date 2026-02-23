@@ -8,92 +8,89 @@
 import sys
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 
+# Simple user agent to avoid block requests 
 headers = {"User-Agent": "Mozilla/5.0"}
 
+# Get HTML of webpage
 def get_page(url):
+    response = requests.get(url, headers=headers)
 
-    try:
-        response = requests.get(url, headers=headers)
-        return response.text
-    except:
-        print("Error while fetching page")
+    if response.status_code != 200:
+        print("Could not open page. Status code:", response.status_code)
         return None
 
+    return response.text
 
+
+# Get page title
 def get_title(soup):
-
     if soup.title and soup.title.string:
         return soup.title.string.strip()
     else:
         return "No Title Found"
 
 
+# Get visible body text
 def get_body(soup):
-
     if not soup.body:
         return "No Body Found"
 
     text = soup.body.get_text()
-
     lines = text.split("\n")
 
     clean_text = ""
-
     for line in lines:
         line = line.strip()
         if line != "":
-            clean_text = clean_text + line + "\n"
-
+            clean_text += line + "\n"
     return clean_text
 
 
-def get_links(soup, base_url):
 
+# Get all links
+def get_links(soup):
     links = []
 
     for tag in soup.find_all("a"):
         href = tag.get("href")
 
-        if href:
-            full_url = urljoin(base_url, href)
-            links.append(full_url)
+        # ignore empty links
+        if href and href != "#":
+            links.append(href)
 
     return links
 
 
-def main():
 
-    # Check command line input
-    if len(sys.argv) != 2:
-        print("No url found")
-        return
+# Check command line input
+if len(sys.argv) != 2:
+    print("Wrong url given!! Retry.")
+    sys.exit(1)
 
-    url = sys.argv[1]
+url = sys.argv[1]
+html = get_page(url)
 
-    html = get_page(url)
+if html is None:
+    sys.exit(1)
 
-    if html is None:
-        return
+soup = BeautifulSoup(html, "html.parser")
 
-    soup = BeautifulSoup(html, "html.parser")
+print("Page Title: ")
+print(get_title(soup))
+print()
 
-    print("Title:\n")
-    print(get_title(soup))
+print("Body Text (First 800 chars): ")
+body_text = get_body(soup)
+print(body_text[:1000])
 
-    print("\nBody:\n")
-    print(get_body(soup))
+print()
 
-    print("\n Links:\n")
+print("Links: ")
+links = get_links(soup)
 
-    links = get_links(soup, url)
-
+if len(links) == 0:
+    print("No links found")
+else:
     for link in links:
         print(link)
-
-
-
-# Run program
-if __name__ == "__main__":
-    main()
