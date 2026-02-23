@@ -125,8 +125,8 @@ freq2 = word_frequencies(words2)
 
 hash1 = simhash(freq1)
 hash2 = simhash(freq2)
-print("SimHash 1:", hash1)
-print("SimHash 2:", hash2)
+print("Simhash 1:", hash1)
+print("Simhash 2:", hash2)
 
 
 common = common_bits(hash1, hash2)
