@@ -1,48 +1,99 @@
-import sys 
+# Write a Python program that takes a URL as a command-line argument, 
+# downloads the webpage, and displays the following information:
+# The Page Title (without any HTML tags)
+# The Page Body Text (only visible text, without HTML tags)
+# All the URLs (links) that the page contains
+
+
+import sys
 import requests
 from bs4 import BeautifulSoup
-import re
+from urllib.parse import urljoin
+
+headers = {"User-Agent": "Mozilla/5.0"}
+
+def get_page(url):
+
+    try:
+        response = requests.get(url, headers=headers)
+        return response.text
+    except:
+        print("Error while fetching page")
+        return None
 
 
-# Ensure a root URL is provided via command line
-if len(sys.argv) < 2:
-    print("NO URL given")
-    sys.exit(1)
+def get_title(soup):
 
-# Read root URL from command line argument
-url = sys.argv[1]
-
-# Send HTTP GET request to fetch webpage content
-response = requests.get(url)
-
-# Extract raw HTML from response
-html_content = response.text
-
-# Parse HTML using BeautifulSoup for structured extraction
-soup = BeautifulSoup(html_content, "html.parser")
+    if soup.title and soup.title.string:
+        return soup.title.string.strip()
+    else:
+        return "No Title Found"
 
 
-# Extract and display page title (useful for indexing / metadata)
-print(soup.title.text)
+def get_body(soup):
+
+    if not soup.body:
+        return "No Body Found"
+
+    text = soup.body.get_text()
+
+    lines = text.split("\n")
+
+    clean_text = ""
+
+    for line in lines:
+        line = line.strip()
+        if line != "":
+            clean_text = clean_text + line + "\n"
+
+    return clean_text
 
 
-# Extract visible body text (basic content retrieval for IR processing)
-print(soup.body.get_text().strip())
+def get_links(soup, base_url):
+
+    links = []
+
+    for tag in soup.find_all("a"):
+        href = tag.get("href")
+
+        if href:
+            full_url = urljoin(base_url, href)
+            links.append(full_url)
+
+    return links
 
 
-# Find all hyperlink tags for link graph / crawling
-links = soup.find_all("a")
+def main():
 
-# Extract and print href attributes (outgoing links from root URL)
-for i in links:
-    print(i.get("href"))
+    # Check command line input
+    if len(sys.argv) != 2:
+        print("No url found")
+        return
+
+    url = sys.argv[1]
+
+    html = get_page(url)
+
+    if html is None:
+        return
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    print("Title:\n")
+    print(get_title(soup))
+
+    print("\nBody:\n")
+    print(get_body(soup))
+
+    print("\n Links:\n")
+
+    links = get_links(soup, url)
+
+    for link in links:
+        print(link)
 
 
 
-# ---- Project Flow Summary ----
-# 1. Accept root URL from command line
-# 2. Fetch webpage using HTTP GET
-# 3. Parse HTML structure
-# 4. Extract page title (metadata)
-# 5. Extract body text (content retrieval)
-# 6. Extract hyperlinks (for crawling / link analysis)
+# Run program
+if __name__ == "__main__":
+    main()
